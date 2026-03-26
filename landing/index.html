@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OgSolut — VPN без компромиссов</title>
+  <meta name="description" content="Быстрый и надёжный VPN через Telegram. VLESS + Reality. Подключись за 30 секунд." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080b12;
+      --surface:   #0e1420;
+      --glass:     rgba(255,255,255,0.04);
+      --border:    rgba(255,255,255,0.08);
+      --cyan:      #00d4ff;
+      --cyan-dim:  rgba(0,212,255,0.15);
+      --purple:    #a855f7;
+      --purple-dim:rgba(168,85,247,0.15);
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Glow blobs ── */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .blob-1 { width: 600px; height: 600px; background: rgba(0,212,255,0.07); top: -200px; right: -200px; }
+    .blob-2 { width: 500px; height: 500px; background: rgba(168,85,247,0.07); bottom: 10%; left: -150px; }
+
+    /* ── Shared ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.25);
+      color: var(--cyan); font-size: 13px; font-weight: 500;
+      padding: 4px 12px; border-radius: 99px; letter-spacing: 0.03em;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 12px;
+      font-size: 15px; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+      border: none;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), #0099bb);
+      color: #000;
+      box-shadow: 0 0 30px rgba(0,212,255,0.3);
+    }
+    .btn-primary:hover { box-shadow: 0 0 50px rgba(0,212,255,0.5); }
+    .btn-outline {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      color: var(--text);
+      backdrop-filter: blur(12px);
+    }
+    .btn-outline:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,11,18,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      font-size: 20px; font-weight: 800;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a { color: var(--muted); font-size: 14px; font-weight: 500; text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { display: flex; gap: 12px; align-items: center; }
+
+    /* ── Hero ── */
+    .hero { padding: 100px 0 80px; text-align: center; }
+    .hero-eyebrow { margin-bottom: 24px; }
+    .hero h1 {
+      font-size: clamp(40px, 7vw, 80px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 18px; color: var(--muted); max-width: 540px;
+      margin: 0 auto 40px; font-weight: 400;
+    }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-sub {
+      margin-top: 16px; font-size: 13px; color: var(--muted);
+    }
+    .hero-sub span { color: var(--cyan); }
+
+    /* ── Stats strip ── */
+    .stats {
+      margin: 60px 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .stat {
+      background: var(--surface);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 40px; font-weight: 800; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Features ── */
+    .section { padding: 80px 0; }
+    .section-header { text-align: center; margin-bottom: 56px; }
+    .section-header h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin-top: 12px; }
+    .section-header p { color: var(--muted); font-size: 16px; margin-top: 12px; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .feature-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-4px); }
+    .feature-icon {
+      width: 48px; height: 48px;
+      background: var(--cyan-dim);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── How it works ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+    .step { text-align: center; padding: 24px; }
+    .step-num {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--purple-dim));
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: var(--cyan);
+      margin: 0 auto 16px;
+    }
+    .step h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--muted); }
+
+    .step-connector {
+      display: none;
+    }
+    @media (min-width: 768px) {
+      .steps-wrap { display: flex; align-items: flex-start; gap: 0; }
+      .step { flex: 1; }
+      .step-connector {
+        display: flex; align-items: center; padding-top: 28px; color: var(--border); font-size: 20px;
+      }
+    }
+
+    /* ── Pricing ── */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .price-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      text-align: center;
+      position: relative;
+      transition: border-color .2s, transform .2s;
+    }
+    .price-card:hover { transform: translateY(-4px); }
+    .price-card.popular {
+      border-color: var(--cyan);
+      background: rgba(0,212,255,0.05);
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--cyan), #0099bb);
+      color: #000; font-size: 11px; font-weight: 700;
+      padding: 4px 14px; border-radius: 99px; letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .price-duration { font-size: 13px; color: var(--muted); font-weight: 500; margin-bottom: 12px; }
+    .price-amount {
+      font-size: 42px; font-weight: 800; letter-spacing: -0.03em; line-height: 1;
+    }
+    .price-amount span { font-size: 18px; font-weight: 500; color: var(--muted); }
+    .price-mo { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .price-save {
+      display: inline-block; margin: 12px 0;
+      background: var(--purple-dim); border: 1px solid rgba(168,85,247,0.3);
+      color: var(--purple); font-size: 12px; font-weight: 600;
+      padding: 2px 10px; border-radius: 99px;
+    }
+    .price-features {
+      list-style: none; margin: 16px 0 24px; text-align: left;
+    }
+    .price-features li {
+      font-size: 13px; color: var(--muted); padding: 5px 0;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .price-features li::before { content: '✓'; color: var(--cyan); font-weight: 700; flex-shrink: 0; }
+
+    /* ── Apps ── */
+    .apps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .app-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      transition: border-color .2s;
+    }
+    .app-card:hover { border-color: rgba(255,255,255,0.2); }
+    .app-icon { font-size: 32px; margin-bottom: 10px; }
+    .app-card h3 { font-size: 14px; font-weight: 600; }
+    .app-card p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 80px 0;
+      text-align: center;
+    }
+    .cta-card {
+      background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(168,85,247,0.08));
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 24px;
+      padding: 64px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 0%, rgba(0,212,255,0.1), transparent 60%);
+      pointer-events: none;
+    }
+    .cta-card h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .cta-card p { color: var(--muted); font-size: 16px; margin-bottom: 36px; }
+
+    /* QR block */
+    .qr-wrap {
+      display: flex; align-items: center; justify-content: center; gap: 40px;
+      flex-wrap: wrap; margin-top: 32px;
+    }
+    .qr-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 12px;
+      width: 140px; height: 140px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 40px rgba(0,212,255,0.2);
+    }
+    .qr-box img { width: 100%; height: 100%; object-fit: contain; }
+    .qr-placeholder {
+      width: 116px; height: 116px;
+      background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 10px 10px;
+      border-radius: 4px;
+    }
+    .qr-info { text-align: left; }
+    .qr-info h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .qr-info p { font-size: 14px; color: var(--muted); max-width: 260px; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+      text-align: center;
+    }
+    .footer-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { color: var(--muted); font-size: 13px; text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 12px; color: var(--muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .stats { grid-template-columns: 1fr; }
+      .hero { padding: 60px 0 40px; }
+      .qr-wrap { flex-direction: column; align-items: center; }
+      .qr-info { text-align: center; }
+      .cta-card { padding: 40px 20px; }
+    }
+
+    /* ── Telegram icon ── */
+    .tg-icon { width: 18px; height: 18px; fill: currentColor; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 0; }
+  </style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="logo">OgSolut</a>
+      <ul class="nav-links">
+        <li><a href="#features">Возможности</a></li>
+        <li><a href="#how">Как начать</a></li>
+        <li><a href="#pricing">Тарифы</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="https://t.me/ogsolutbot" class="btn btn-primary" target="_blank">
+          <svg class="tg-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+          </svg>
+          Открыть бота
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">
+      <span class="tag">🔒 VLESS + Reality · Telegram Bot</span>
+    </div>
+    <h1>VPN, который<br /><span>просто работает</span></h1>
+    <p>Обходи блокировки одним нажатием. Подключайся через Telegram — без лишних приложений и технических знаний.</p>
+    <div class="hero-actions">
+      <a href="https://t.me/ogsolutbot" class="btn btn-primary" target="_blank">
+        <svg class="tg-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+        </svg>
+        Подключиться — бесплатно
+      </a>
+      <a href="#pricing" class="btn btn-outline">Смотреть тарифы</a>
+    </div>
+    <p class="hero-sub">от <span>200 ₽/мес</span> · оплата через Telegram Stars</p>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="container">
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">3 ГБ</div>
+      <div class="stat-label">трафика в базовом тарифе</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">30 сек</div>
+      <div class="stat-label">до первого подключения</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">35%</div>
+      <div class="stat-label">скидка за год</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider" style="margin: 0 0 0 0;"></div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="tag">Почему OgSolut</span>
+      <h2>Не просто VPN</h2>
+      <p>Современный протокол, управление прямо в Telegram и прозрачная подписка.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>VLESS + Reality</h3>
+        <p>Передовой протокол с маскировкой под обычный HTTPS-трафик. Практически невозможно заблокировать.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Быстрые серверы</h3>
+        <p>Сервера в <!-- TODO: укажи локации --> Европе на выделенных каналах. Стриминг и игры без лагов.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Управление в Telegram</h3>
+        <p>Купи подписку, получи конфиг или QR-код прямо в боте. Никаких личных кабинетов.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Любое устройство</h3>
+        <p>iOS, Android, Windows, macOS, Linux. Работает через v2rayNG, Hiddify, Streisand.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Контроль трафика</h3>
+        <p>Всегда знаешь, сколько трафика осталось. При необходимости — докупи пакет прямо в боте.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <h3>Telegram Stars</h3>
+        <p>Оплата через встроенный механизм Telegram. Без банковских карт и лишних данных.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how" style="background: var(--surface); padding: 80px 0;">
+  <div class="container">
+    <div class="section-header">
+      <span class="tag">Как начать</span>
+      <h2>4 шага до свободного интернета</h2>
+    </div>
+    <div class="steps-wrap">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Открой бота</h3>
+          <p>Перейди по ссылке или отсканируй QR-код — бот встретит тебя приветствием.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Выбери тариф</h3>
+          <p>Нажми /start и выбери удобный план подписки. Оплати через Telegram Stars.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Получи конфиг</h3>
+          <p>Бот выдаст QR-код или ссылку для подключения. Сканируй любым VPN-клиентом.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h3>Готово!</h3>
+          <p>Подключение активно. Интернет без ограничений — на всех твоих устройствах.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <span class="tag">Тарифы</span>
+      <h2>Честные цены</h2>
+      <p>Один тариф — один аккаунт, 3 ГБ/мес. Топап трафика — в боте.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-duration">1 месяц</div>
+        <div class="price-amount">200 <span>₽</span></div>
+        <div class="price-mo">200 ₽/мес</div>
+        <ul class="price-features">
+          <li>3 ГБ трафика</li>
+          <li>Неограниченная скорость</li>
+          <li>Все протоколы</li>
+        </ul>
+        <a href="https://t.me/ogsolutbot" class="btn btn-outline" target="_blank" style="width:100%; justify-content:center;">Выбрать</a>
+      </div>
+
+      <div class="price-card popular">
+        <div class="popular-badge">ПОПУЛЯРНЫЙ</div>
+        <div class="price-duration">3 месяца</div>
+        <div class="price-amount">510 <span>₽</span></div>
+        <div class="price-mo">170 ₽/мес</div>
+        <div class="price-save">−15%</div>
+        <ul class="price-features">
+          <li>3 ГБ × 3 месяца</li>
+          <li>Неограниченная скорость</li>
+          <li>Все протоколы</li>
+        </ul>
+        <a href="https://t.me/ogsolutbot" class="btn btn-primary" target="_blank" style="width:100%; justify-content:center;">Выбрать</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-duration">6 месяцев</div>
+        <div class="price-amount">900 <span>₽</span></div>
+        <div class="price-mo">150 ₽/мес</div>
+        <div class="price-save">−25%</div>
+        <ul class="price-features">
+          <li>3 ГБ × 6 месяцев</li>
+          <li>Неограниченная скорость</li>
+          <li>Все протоколы</li>
+        </ul>
+        <a href="https://t.me/ogsolutbot" class="btn btn-outline" target="_blank" style="width:100%; justify-content:center;">Выбрать</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-duration">12 месяцев</div>
+        <div class="price-amount">1 560 <span>₽</span></div>
+        <div class="price-mo">130 ₽/мес</div>
+        <div class="price-save">−35%</div>
+        <ul class="price-features">
+          <li>3 ГБ × 12 месяцев</li>
+          <li>Неограниченная скорость</li>
+          <li>Все протоколы</li>
+        </ul>
+        <a href="https://t.me/ogsolutbot" class="btn btn-outline" target="_blank" style="width:100%; justify-content:center;">Выбрать</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APPS -->
+<section class="section" style="background: var(--surface); padding: 60px 0;">
+  <div class="container">
+    <div class="section-header">
+      <span class="tag">Совместимость</span>
+      <h2>Работает везде</h2>
+      <p>Установи один из приложений и отсканируй QR-код из бота.</p>
+    </div>
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-icon">🤖</div>
+        <h3>v2rayNG</h3>
+        <p>Android</p>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">🦅</div>
+        <h3>Hiddify</h3>
+        <p>Android · iOS · Windows · macOS</p>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">🌊</div>
+        <h3>Streisand</h3>
+        <p>iOS · macOS</p>
+      </div>
+      <div class="app-card">
+        <div class="app-icon">🪟</div>
+        <h3>v2rayN</h3>
+        <p>Windows</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <span class="tag" style="margin-bottom: 20px;">Начни прямо сейчас</span>
+      <h2>Твой интернет — твои правила</h2>
+      <p>Открой бота в Telegram и подключись за 30 секунд.</p>
+      <a href="https://t.me/ogsolutbot" class="btn btn-primary" target="_blank" style="font-size:16px; padding: 16px 36px;">
+        <svg class="tg-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+        </svg>
+        Открыть @ogsolutbot
+      </a>
+
+      <div class="qr-wrap">
+        <div class="qr-box">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=116x116&data=https://t.me/ogsolutbot&bgcolor=ffffff&color=000000&margin=0" alt="QR код @ogsolutbot" width="116" height="116" />
+        </div>
+        <div class="qr-info">
+          <h3>Сканируй QR-код</h3>
+          <p>Открой камеру телефона и наведи на код — перейдёшь прямо в бота.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <a href="#" class="logo">OgSolut</a>
+      <div class="footer-links">
+        <a href="https://t.me/ogsolutbot" target="_blank">Telegram-бот</a>
+        <a href="https://t.me/YOUR_SUPPORT_USERNAME" target="_blank">Поддержка</a>
+      </div>
+      <p class="footer-copy">© 2025 ogsolut.com · VLESS + Reality VPN</p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
